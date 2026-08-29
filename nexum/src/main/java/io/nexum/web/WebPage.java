@@ -152,15 +152,25 @@ final class WebPage {
                 border-left: 2px solid var(--line); padding: 5px 0 9px 11px;
                 position: relative;
               }
+              /* `--dim` and not `--line`: a 6px dot in the line colour is not
+                 dark, it is absent, and a row with no dot beside rows that
+                 have one reads as a rendering fault rather than as a quieter
+                 event. */
               .event::before {
                 content: ''; position: absolute; left: -4px; top: 10px;
-                width: 6px; height: 6px; border-radius: 50%; background: var(--line);
+                width: 6px; height: 6px; border-radius: 50%; background: var(--dim);
               }
               /* Any event that moved the order, not only the ones the journal
                  files under "state": an order being created moves it to pending
                  new, and a first row drawn differently from the rest reads as a
                  distinction the reader is meant to act on. */
               .event.moved::before { background: var(--ok); }
+              /* A refusal moves nothing, which is exactly why it needs its own
+                 colour: drawn as an ordinary quiet event it reads as "nothing
+                 happened here", when what happened is that this system decided
+                 not to carry a request and said so. That is the line on the
+                 order most worth stopping at. */
+              .event.refused::before { background: var(--warn); }
               /*
                 One line, not three. Time, what happened and which wire it came
                 over are a single fact about the event, and stacked they took
@@ -619,7 +629,9 @@ final class WebPage {
               const events = (d.events ?? []).map(e => {
                 const key = e.at + '/' + e.type;
                 return `
-                <div class="event ${e.state ? 'moved' : ''} ${openEvents.has(key) ? 'open' : ''}"
+                <div class="event ${e.state ? 'moved' : ''} ${
+                       e.type === 'request-refused' ? 'refused' : ''} ${
+                       openEvents.has(key) ? 'open' : ''}"
                      onclick="toggleEvent(this, '${key}')">
                   <div class="head">
                     <span class="when">${time(e.at)}</span>
