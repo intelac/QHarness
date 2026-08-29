@@ -266,6 +266,10 @@ public final class MonitorApi implements Plugin {
                 // but going the other way, which is what a screen laying the
                 // conversation out left to right needs to know.
                 case 'r' -> "reply";
+                // `q.` is deliberately not here. Those are an amendment's
+                // requested terms, not a message: nobody said them to anybody,
+                // and giving them a column would put a fourth speaker in a
+                // conversation between three.
                 default -> null;
             };
             if (prefix == null) {

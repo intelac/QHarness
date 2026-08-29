@@ -303,8 +303,19 @@ public final class SegmentedJournal implements OrderJournal {
         }
     }
 
+    /**
+     * The terms an amendment asked for.
+     *
+     * <p>Written under {@code q.} now, and under {@code r.} before that — the
+     * prefix a reply to the client uses, which is why it moved. A journal
+     * written by the older build is still the record of those orders, so both
+     * are read here; only {@code q.} is written.
+     */
     private static Map<Integer, String> requestedTerms(Map<String, String> fields) {
-        return tagged(fields, "r.");
+        Map<Integer, String> terms = tagged(fields, "q.");
+        // An older journal's RequestSent. RequestRefused writes `r.` too, but
+        // carries no requested terms, so nothing here can confuse the two.
+        return terms.isEmpty() ? tagged(fields, "r.") : terms;
     }
 
     private static Map<Integer, String> tagged(Map<String, String> fields, String prefix) {

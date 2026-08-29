@@ -157,7 +157,13 @@ public sealed interface OrderEvent {
             // Without this a restart forgets what the client called the
             // request, and the confirmation goes back under the wrong id.
             all.put("clientClOrdId", String.valueOf(clientClOrdId));
-            requestedTerms.forEach((tag, value) -> all.put("r." + tag, value));
+            // `q.` and not `r.`: these are the terms being asked for, not a
+            // message anyone sent. The other four prefixes each name a speaker
+            // and a direction, and `r.` means a reply went back to the client
+            // — so a single `r.38` here had a screen draw the request this
+            // system forwarded to the venue as an answer to the client, which
+            // is the one thing this event says did not happen.
+            requestedTerms.forEach((tag, value) -> all.put("q." + tag, value));
             // Both sides of the request, tag by tag. What went to the venue is
             // the message a dispute is argued over, and it was the one thing
             // the journal did not keep.
