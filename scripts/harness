@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+"""Call one harness tool and print what came back.
+
+Hand-built JSON on a shell command line is its own source of bugs — a stray
+brace produces a parse error the tool never sees. This takes key=value pairs
+and builds the request itself.
+
+    harness status
+    harness send_order clOrdId=S-1 symbol=BP side=buy quantity=1000 price=50 \
+        onBehalfOf=FUNDX
+    harness traffic side=market msgType=D
+
+The tool name may be given with or without the `harness_` prefix. Values that
+look like numbers are sent as numbers, since a schema that asks for one refuses
+a string.
+
+The probe is its own process, so which one to call is a choice: FIXPROBE_PORT
+names it, defaulting to the port `fixprobe` uses when started without one.
+Several can run at once — one per counterparty being simulated — and each is a
+separate port.
+
+    FIXPROBE_PORT=18101 harness status
+"""
+from __future__ import annotations
+
+import json
+import re
+import sys
+import urllib.request
+
+import os
+
+# The probe, not the engine: the engine no longer carries harness tools, and
+# pointing at it produces "unknown tool" rather than anything useful.
+MCP = "http://127.0.0.1:%s/mcp" % os.environ.get("FIXPROBE_PORT", "18099")
+SOH = "\x01"
+
+# Tags worth naming when a raw FIX message is printed, so a scenario can be
+# read without a dictionary to hand.
+NAMED_TAGS = {
+    "11": "ClOrdID", "37": "OrderID", "38": "OrderQty", "39": "OrdStatus",
+    "41": "OrigClOrdID", "44": "Price", "54": "Side", "55": "Symbol",
+    "14": "CumQty", "151": "LeavesQty", "32": "LastQty", "31": "LastPx",
+    "150": "ExecType", "434": "CxlRejResponseTo", "58": "Text", "115": "OnBehalfOf",
+}
+
+
+def value(text: str):
+    if re.fullmatch(r"-?\d+", text):
+        return int(text)
+    if re.fullmatch(r"-?\d*\.\d+", text):
+        return float(text)
+    return text
+
+
+def call(tool: str, arguments: dict) -> dict:
+    body = {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+            "params": {"name": tool, "arguments": arguments}}
+    request = urllib.request.Request(
+        MCP, data=json.dumps(body).encode(),
+        headers={"Content-Type": "application/json",
+                 "Accept": "application/json, text/event-stream"})
+    try:
+        with urllib.request.urlopen(request, timeout=40) as response:
+            payload = json.load(response)
+    except OSError as unreachable:
+        # Nothing listening is the ordinary mistake now that the probe is its
+        # own process, and a stack trace answers a different question than the
+        # one being asked.
+        raise SystemExit(
+            "no probe on %s (%s).\n"
+            "Start one:  java -jar fixprobe/target/fixprobe.jar [port]\n"
+            "Another port:  FIXPROBE_PORT=<port> harness ..." % (MCP, unreachable))
+    if "error" in payload:
+        return {"error": True, "text": str(payload["error"]), "data": {}}
+    result = payload.get("result", {})
+    return {"error": result.get("isError", False),
+            "text": (result.get("content") or [{}])[0].get("text", ""),
+            "data": result.get("structuredContent") or {}}
+
+
+def explain(raw: str) -> str:
+    """Spell a raw FIX message as the fields a scenario is about."""
+    parts = []
+    for field in raw.split(SOH):
+        if "=" not in field:
+            continue
+        number, _, held = field.partition("=")
+        if number in NAMED_TAGS:
+            parts.append(f"{NAMED_TAGS[number]}({number})={held}")
+    return "  ".join(parts)
+
+
+def main() -> None:
+    if len(sys.argv) < 2:
+        print(__doc__)
+        sys.exit(2)
+
+    tool = sys.argv[1]
+    if not tool.startswith("harness_"):
+        tool = "harness_" + tool
+
+    arguments = {}
+    for pair in sys.argv[2:]:
+        key, _, held = pair.partition("=")
+        arguments[key] = value(held)
+
+    outcome = call(tool, arguments)
+    if outcome["error"]:
+        print("FAILED:", outcome["text"])
+        sys.exit(1)
+
+    print(outcome["text"])
+
+    # Traffic is far easier to read spelled out than as raw FIX.
+    rows = outcome["data"].get("messages")
+    if rows:
+        print()
+        for row in rows:
+            print(f"  {row['direction']:<3} {explain(row['raw'])}")
+
+
+if __name__ == "__main__":
+    main()

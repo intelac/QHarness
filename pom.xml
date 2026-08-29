@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>io.nexum</groupId>
+  <artifactId>nexum-parent</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <name>NEXUM</name>
+  <description>
+    A FIX order router, and a harness for testing one.
+
+    The harness is its own module because it is its own thing: it stands FIX
+    endpoints up against a system under test, and which system that is has
+    nothing to do with this engine. Living inside the engine made it reachable
+    only by running one — a spare configuration and a placeholder session, for
+    a process meant to route nothing.
+  </description>
+
+  <modules>
+    <module>mcp</module>
+    <module>fixprobe</module>
+    <module>nexum</module>
+  </modules>
+
+  <properties>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <quickfixj.version>2.3.1</quickfixj.version>
+    <junit.version>5.11.4</junit.version>
+    <slf4j.version>2.0.13</slf4j.version>
+  </properties>
+</project>

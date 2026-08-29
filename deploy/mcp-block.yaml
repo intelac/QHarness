@@ -1,0 +1,23 @@
+
+# ---------------------------------------------------------------------------
+# The agent's interface to this engine.
+#
+# Bound to the loopback address, unlike the FIX acceptor on 9880: these tools
+# place and amend real orders, and a port answers whoever reaches it. An agent
+# running elsewhere should come through an SSH tunnel rather than a published
+# port.
+#
+# maxCalls is what permits the agent to act at all; harnessCalls is a separate
+# switch for the conformance harness, which talks to a system under test rather
+# than to the venue. Granting one does not grant the other.
+# ---------------------------------------------------------------------------
+mcp:
+  port: 8090
+  bind: 127.0.0.1
+  session: OMS->FUNDX
+  destination: OMS->LSE
+  identity:
+    115: FUNDX
+  maxCalls: 200
+  validMinutes: 480
+  harnessCalls: 500

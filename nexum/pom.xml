@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!--
+    Nexum: in Roman law, a binding obligation entered into by formal act.
+    An order is exactly that — a client's instruction the system is obliged to
+    carry faithfully, execute where told, and be able to account for afterwards.
+  -->
+
+  <parent>
+    <groupId>io.nexum</groupId>
+    <artifactId>nexum-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>nexum-core</artifactId>
+  <packaging>jar</packaging>
+
+  <properties>
+    <!--
+      Java 21: the current LTS, and the first release where pattern matching in
+      switch is final. The order state machine and message dispatch are both
+      decisions over a closed set of shapes, which that expresses directly;
+      written as chained instanceof they read as accidents of syntax.
+
+      Compiled to a release target so a newer JDK still produces bytecode a 21
+      runtime accepts — the toolchain is a build detail, the target is not.
+    -->
+    <!-- Versions are the parent's, so the two modules cannot drift apart. -->
+  </properties>
+
+  <dependencies>
+    <!--
+      What a tool is, and the gate in front of it. Shared with the probe so the
+      rule that an acting tool needs a grant naming what it reaches is written
+      once: two copies would mean one of them is the stale one.
+    -->
+    <dependency>
+      <groupId>io.nexum</groupId>
+      <artifactId>nexum-mcp</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <!--
+      Test scope only, and only one way. The probe tests systems that are not
+      this one, so it must not depend on the engine; the engine using it to
+      check that a real router can be driven from both sides is the direction
+      that keeps that true.
+    -->
+    <dependency>
+      <groupId>io.nexum</groupId>
+      <artifactId>fixprobe</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!--
+      QuickFIX/J supplies the session layer only: logon, heartbeats, sequence
+      numbers, resend, and the message store. Everything above it — layering,
+      routing, dialect overlays, the order cache — is ours, and the transport is
+      mounted as a plugin so it can be replaced without touching consumers.
+
+      Licence note: the QuickFIX family ships a custom BSD-style licence, not
+      Apache/MIT. Commercial use is permitted but end-user documentation must
+      carry the quickfixengine.org attribution, and the product name may not
+      contain "QuickFIX".
+    -->
+    <dependency>
+      <groupId>org.quickfixj</groupId>
+      <artifactId>quickfixj-core</artifactId>
+      <version>${quickfixj.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.quickfixj</groupId>
+      <artifactId>quickfixj-messages-fix44</artifactId>
+      <version>${quickfixj.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>5.11.4</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>2.0.13</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <sourceDirectory>src/main/java</sourceDirectory>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+        <configuration>
+          <trimStackTrace>false</trimStackTrace>
+        </configuration>
+      </plugin>
+
+      <!-- One jar with everything in it, so the container needs only a JRE. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.5.2</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals><goal>shade</goal></goals>
+            <configuration>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <finalName>nexum</finalName>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>io.nexum.app.Main</mainClass>
+                </transformer>
+                <!-- QuickFIX/J ships service files that must be merged, not overwritten. -->
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+              </transformers>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                    <exclude>module-info.class</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

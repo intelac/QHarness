@@ -1,0 +1,52 @@
+# Vendored harness build output and installed dependencies. The submodule
+# tracks upstream source; everything below is produced by a build.
+harness/node_modules/
+harness/lib/
+harness/**/lib/
+harness/.dsh-build/
+
+# The dsh profile install: 268M of node_modules and this session's server
+# logs, all reproducible from package.json.
+dsh/
+
+# Plugin build output.
+plugins/*/node_modules/
+plugins/*/lib/
+
+# Runtime state, which belongs to a deployment rather than to the source.
+*.log
+journal/
+logs/
+
+.DS_Store
+.idea/
+.vscode/
+
+# Browser-automation scratch output from development sessions.
+.playwright-mcp/
+*.png
+
+# Local tooling scratch state.
+.spec-workflow/
+
+# Working copies of our plugins inside the vendor tree, produced by
+# scripts/sync-plugins.sh. plugins/ is the source of truth.
+harness/packages/client/ui-nexum-sessions/
+dependency-reduced-pom.xml
+**/target/
+
+# The running configuration, which is not the example. Ports, journal paths
+# and passwords differ per machine, and a deployment's belongs to whoever
+# runs it.
+/nexum.yaml
+
+# Nothing that names a host, a key, or a password. The deployment's own
+# configuration belongs to whoever runs it; what is here is the example.
+*.credentials.yaml
+.credentials.yaml
+.env
+.env.*
+*.pem
+*.key
+id_rsa*
+deploy/**/*.local.*

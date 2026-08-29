@@ -1,0 +1,134 @@
+diff --git a/docs/config-catalog.i18n.yaml b/docs/config-catalog.i18n.yaml
+index d0665a1..7ce0a53 100644
+--- a/docs/config-catalog.i18n.yaml
++++ b/docs/config-catalog.i18n.yaml
+@@ -2,5 +2,5 @@
+ # side as of the last confirmed-consistent state. Both languages carry equal authority;
+ # after editing either side, bring the other along and re-record with:
+ #   pnpm run verify-translation-pairing --write docs/config-catalog.md
+-config-catalog.md: de340b7ffade528301b4538b0553bc11ec969985
+-config-catalog.zh.md: eb17ee89fd7860cc0774073bea542aca315ce652
++config-catalog.md: a7be9a456fd1df45ba303ca751b393d595a7bdf1
++config-catalog.zh.md: 40f717d0ec54380cfc1623b1fbede60a33dbcb47
+diff --git a/docs/config-catalog.md b/docs/config-catalog.md
+index de340b7..a7be9a4 100644
+--- a/docs/config-catalog.md
++++ b/docs/config-catalog.md
+@@ -3244,6 +3244,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
+ - `@deepseek-ai/dsh-client-ui-layout` ([`packages/client/ui-layout/src/index.ts`](../packages/client/ui-layout/src/index.ts))
+ - `@deepseek-ai/dsh-client-ui-message-feedback` ([`packages/client/ui-message-feedback/src/index.ts`](../packages/client/ui-message-feedback/src/index.ts))
+ - `@deepseek-ai/dsh-client-ui-model-selection` ([`packages/client/ui-model-selection/src/index.ts`](../packages/client/ui-model-selection/src/index.ts))
++- `@deepseek-ai/dsh-client-ui-nexum-sessions` ([`packages/client/ui-nexum-sessions/src/index.ts`](../packages/client/ui-nexum-sessions/src/index.ts))
+ - `@deepseek-ai/dsh-client-ui-permission-presets` ([`packages/client/ui-permission-presets/src/index.ts`](../packages/client/ui-permission-presets/src/index.ts))
+ - `@deepseek-ai/dsh-client-ui-plan` ([`packages/client/ui-plan/src/index.ts`](../packages/client/ui-plan/src/index.ts))
+ - `@deepseek-ai/dsh-client-ui-reference` ([`packages/client/ui-reference/src/index.ts`](../packages/client/ui-reference/src/index.ts))
+diff --git a/docs/config-catalog.zh.md b/docs/config-catalog.zh.md
+index eb17ee8..40f717d 100644
+--- a/docs/config-catalog.zh.md
++++ b/docs/config-catalog.zh.md
+@@ -3246,6 +3246,7 @@ export interface Config {
+ - `@deepseek-ai/dsh-client-ui-layout`（[`packages/client/ui-layout/src/index.ts`](../packages/client/ui-layout/src/index.ts)）
+ - `@deepseek-ai/dsh-client-ui-message-feedback`（[`packages/client/ui-message-feedback/src/index.ts`](../packages/client/ui-message-feedback/src/index.ts)）
+ - `@deepseek-ai/dsh-client-ui-model-selection`（[`packages/client/ui-model-selection/src/index.ts`](../packages/client/ui-model-selection/src/index.ts)）
++- `@deepseek-ai/dsh-client-ui-nexum-sessions`（[`packages/client/ui-nexum-sessions/src/index.ts`](../packages/client/ui-nexum-sessions/src/index.ts)）
+ - `@deepseek-ai/dsh-client-ui-permission-presets`（[`packages/client/ui-permission-presets/src/index.ts`](../packages/client/ui-permission-presets/src/index.ts)）
+ - `@deepseek-ai/dsh-client-ui-plan`（[`packages/client/ui-plan/src/index.ts`](../packages/client/ui-plan/src/index.ts)）
+ - `@deepseek-ai/dsh-client-ui-reference`（[`packages/client/ui-reference/src/index.ts`](../packages/client/ui-reference/src/index.ts)）
+diff --git a/knip.json b/knip.json
+index 280d10a..3142a72 100644
+--- a/knip.json
++++ b/knip.json
+@@ -139,6 +139,16 @@
+         "tests/**/*.tsx"
+       ]
+     },
++    "packages/client/ui-nexum-sessions": {
++      "entry": [
++        "tests/**/*.spec.tsx"
++      ],
++      "project": [
++        "src/**/*.ts",
++        "src/**/*.tsx",
++        "tests/**/*.tsx"
++      ]
++    },
+     "packages/client/ui-directory-picker-browse": {
+       "entry": [
+         "tests/**/*.spec.tsx"
+diff --git a/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts b/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
+index 08b22ff..6ff4231 100644
+--- a/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
++++ b/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
+@@ -648,6 +648,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+       'client-ui-conversation QueueDock id \'queue\'',
+       'client-ui-conversation TodoDock id \'todo\'',
+       'client-ui-goal GoalDock id \'goal\'',
++      'client-ui-nexum-sessions SessionBar id \'nexum-sessions\'',
+     ],
+     replaceRisk: 'none',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.input.dock\', () => ctx.slots.register(\n      { name: \'conversation.input.dock\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 737a21e..1baa400 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -2313,6 +2313,36 @@ importers:
+         specifier: ^18.2.0
+         version: 18.3.1
+ 
++  packages/client/ui-nexum-sessions:
++    devDependencies:
++      '@deepseek-ai/cordis':
++        specifier: workspace:^
++        version: link:../../../vendor/cordis
++      '@deepseek-ai/dsh-client-runtime':
++        specifier: workspace:^
++        version: link:../runtime
++      '@deepseek-ai/dsh-client-ui-conversation':
++        specifier: workspace:^
++        version: link:../ui-conversation
++      '@deepseek-ai/dsh-client-ui-slots':
++        specifier: workspace:^
++        version: link:../ui-slots
++      '@deepseek-ai/dsh-invariants':
++        specifier: workspace:^
++        version: link:../../runtime-diagnostics/invariants
++      '@testing-library/react':
++        specifier: ^16.1.0
++        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
++      '@types/react':
++        specifier: ~18.3.1
++        version: 18.3.31
++      react:
++        specifier: ^18.2.0
++        version: 18.3.1
++      react-dom:
++        specifier: ^18.2.0
++        version: 18.3.1(react@18.3.1)
++
+   packages/client/ui-permission-presets:
+     devDependencies:
+       '@deepseek-ai/cordis':
+diff --git a/scripts/verify-package-readme-model-experience.ts b/scripts/verify-package-readme-model-experience.ts
+index 02d0e66..5468c98 100644
+--- a/scripts/verify-package-readme-model-experience.ts
++++ b/scripts/verify-package-readme-model-experience.ts
+@@ -89,6 +89,7 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
+   'packages/client/ui-trajectory': { kind: 'none', reason: 'Browser-side UI plugin layer; registers nothing model-facing.' },
+   'packages/client/ui-workspace': { kind: 'none', reason: 'Browser-side UI plugin layer; registers nothing model-facing.' },
+   'packages/client/ui-directory-picker-browse': { kind: 'none', reason: 'Browser-side directory-browsing surface; registers nothing model-facing.' },
++  'packages/client/ui-nexum-sessions': { kind: 'none', reason: 'Browser-side FIX session projection; registers nothing model-facing.' },
+   'packages/client/ui-directory-picker-native': { kind: 'none', reason: 'Browser-side surface driving the host OS chooser; registers nothing model-facing.' },
+   'packages/client/ui-theme': { kind: 'none', reason: 'Browser-side UI plugin layer; registers nothing model-facing.' },
+   'packages/client/ui-settings': { kind: 'none', reason: 'Browser-side UI plugin layer; registers nothing model-facing.' },
+diff --git a/tsconfig.client.json b/tsconfig.client.json
+index b5874b6..de1c751 100644
+--- a/tsconfig.client.json
++++ b/tsconfig.client.json
+@@ -82,6 +82,7 @@
+     { "path": "./packages/client/ui-message-feedback" },
+     { "path": "./packages/client/ui-model-selection" },
+     { "path": "./packages/client/ui-agent-preset" },
++    { "path": "./packages/client/ui-nexum-sessions" },
+     { "path": "./packages/client/ui-permission-presets" },
+     { "path": "./packages/client/ui-plan" },
+     { "path": "./packages/client/ui-settings-plugins" },

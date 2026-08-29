@@ -1,0 +1,42 @@
+/* Sits under the composer, so it reads as status rather than as a control. */
+.nexum-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 11px;
+  opacity: .75;
+  padding: 2px 0;
+}
+
+.nexum-session {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.nexum-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  /* Down by default: a dot that is green until proven otherwise reports a
+     dead session as healthy for as long as nothing contradicts it. */
+  background: #f85149;
+  flex: none;
+}
+
+.nexum-dot--up { background: #3fb950; }
+
+.nexum-seq { opacity: .6; }
+
+.nexum-bar--down { color: #f85149; }
+
+/* Which engine a row came from, shown only when more than one reports. */
+.nexum-engine {
+  margin-right: 4px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: rgba(127, 127, 127, 0.22);
+  font-size: 0.85em;
+  opacity: 0.8;
+}

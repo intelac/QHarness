@@ -1,0 +1,20 @@
+# Maven build output.
+target/
+out/
+
+# Runtime state. The journal is the order book's source of truth and every
+# entry is specific to one deployment's history, so it is kept beside the
+# running engine rather than in the repository.
+journal/
+logs/
+*.log
+
+# A real nexum.yaml carries the FIX logon password. Only the example, which
+# says CHANGE-ME, belongs here.
+nexum.yaml
+!deploy/nexum.yaml.example
+
+.DS_Store
+*.iml
+.idea/
+.vscode/

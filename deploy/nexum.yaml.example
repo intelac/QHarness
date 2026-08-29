@@ -1,0 +1,43 @@
+# NEXUM production configuration.
+#
+# Copy to /root/nexum/nexum.yaml on the server and set the password. This file
+# is the example; the real one is not in git.
+
+orders:
+  journal: /var/lib/nexum/journal
+  # Every event flushed before the message it describes goes out. Slower, and
+  # the reason a crash does not lose orders the venue knows about.
+  sync: true
+
+# Who may log on. Without this block the acceptor admits anyone who knows the
+# CompIDs — which are in the counterparty's onboarding document and are not a
+# secret. On a public address this block is not optional.
+security:
+  password: CHANGE-ME
+  # Optional and recommended in addition: only these addresses may connect.
+  # Matched by prefix, so "203.0.113." admits that range.
+  # allowFrom:
+  #   - 203.0.113.
+
+web:
+  port: 8080
+
+monitor:
+  enabled: true
+
+sessions:
+  - id: OMS->FUNDX
+    version: FIX.4.4
+    role: acceptor
+    port: 9880
+    logPath: /var/lib/nexum/logs
+    persistent: true
+
+clients:
+  - id: FUND_X
+    fingerprint:
+      115: FUNDX
+
+routes:
+  - destination: OMS->FUNDX
+    fingerprint: any
