@@ -58,14 +58,33 @@ independent units against a frozen contract instead.
 
 ## Status
 
-Verified on the Play 1 booking sample: both probes parse it completely
-(15/15 routes including catch-all and static mounts; 11 templates yielding 72
-field reads, 7 method calls, 16 reverse routes), and `SURVEY-booking.md` is
-what the survey produces.
+The probes have been run against four real Play 1 codebases, chosen because
+each stresses a different axis:
 
-Not verified at scale. Nothing here has met a codebase of hundreds of
-thousands of lines, and the first run on one will find things this design did
-not anticipate.
+| codebase | routes | templates | result |
+|---|---|---|---|
+| booking sample | 15/15 | 11 | catch-all, static mount |
+| `just-test-cases` (Play's own) | 64/64 | 79 | 2 module includes, 6 dynamic dispatches |
+| BionimbuzWeb (1.5.3, crud+secure) | 103/103 | 64 | dotted-package routing, 19 custom tags |
+| jclaw (API backend) | 228/228 | 4 | largest route table found |
+
+No unparsed lines in any of them. `just-test-cases` is Play's own deliberate
+edge-case corpus and is where the scanner's worst bug surfaced: bare `${title}`
+expressions — the commonest thing a template does — were being filed as
+unreadable rather than as field reads. It cost 121 of 170 "unresolved"
+expressions and was invisible on the booking sample, whose templates happen to
+read everything through a dot.
+
+**No open-source Play 1 application exists at the target scale.** Searched
+systematically: the largest route table found anywhere is 228, against a
+target of a thousand or more, and the largest template corpus is 79. Play 1
+peaked in enterprise Java around 2010-2013 and its large survivors are behind
+company walls — the one public candidate that looked right, SIGA, turned out
+to have already migrated off Play 1.
+
+So scale itself remains unverified. What has been verified is behaviour
+against the awkward syntax real projects contain, which is a different and
+lesser claim.
 
 ## What is missing
 
