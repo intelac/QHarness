@@ -141,3 +141,65 @@ If it passes, the next question is the one this cannot answer: whether an
 agent following the skill unattended produces a report worth reading, or
 whether it skips the probes and writes something plausible from the file
 names. That needs the whole survey, not two steps of it.
+
+## The full survey, unattended
+
+Second run: all six probes, the whole report, no step-by-step instructions.
+Sixteen minutes, fourteen steps, 427K input tokens, and **no report**.
+
+What it did instead is worth more than the report would have been.
+
+### It went past the skill
+
+The skill says a catch-all route means the routes file is not the endpoint
+list, and that the public controller methods should be counted too. The agent
+took that seriously, wrote its own grep to count them, and got zero.
+
+Then it debugged its own regex, in the open:
+
+> `\s` inside a bracket expression doesn't work in ERE
+
+> `\]` inside a bracket expression doesn't escape; the `]` closes the class
+> early
+
+Three steps of bisecting a failing pattern. Not what was asked for, and not
+wrong either — the count it wanted was one the probes do not produce.
+
+### And it found something the probes miss
+
+> Some controllers (Executor, Setting) declare 0 public methods but have
+> routes — they must inherit actions.
+
+Verified: `ExecutorController` has zero `public static` methods and extends
+`BaseAdminController`. Its actions live in the parent.
+
+**No probe reports this.** `parse-routes` sees the route, `scan-modules` sees
+a controller with no signals, and nothing connects them. An endpoint whose
+handler is inherited is invisible to both, which is exactly the kind of gap
+that survives a migration and surfaces in production.
+
+### What the run says about the arrangement
+
+**The skill's instructions were followed too literally and not literally
+enough at once.** It pursued "count the controller methods" — a single clause
+— for eleven steps, while the four tasks it had set itself stayed at "1 in
+progress, 3 pending" throughout. Sixteen minutes of real work, none of it the
+work that was asked for.
+
+Three things follow.
+
+**A probe should answer the question, not the agent.** "Count the public
+methods" appears in the skill as prose; it should be a seventh probe. An
+instruction a script can execute belongs in a script, because an agent given
+prose will write the script itself, badly, in the middle of something else.
+
+**Context grew 12.3K → 427K over fourteen steps.** Most of it is probe output
+and file reads accumulating. Nothing was compacted because nothing hit a
+limit, but the trajectory is the argument for one unit per session rather than
+one session per project.
+
+**The digression was productive, which is the awkward part.** A stricter
+agent — one that ran six probes and wrote the report — would have produced a
+complete-looking survey that missed the inherited actions. This one produced
+no survey and one real finding. Neither outcome is the one wanted, and the
+difference between them is not obedience.
