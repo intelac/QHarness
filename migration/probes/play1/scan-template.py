@@ -43,6 +43,14 @@ AS_BINDING = re.compile(r"\bas\s*:\s*['\"](\w+)['\"]")
 # the case worth flagging.
 PATH = re.compile(r"\b(?P<root>[a-z_]\w*)(?P<rest>(?:\.\w+)+)(?P<call>\s*\()?")
 
+# `${title}` — the whole expression is one name. This is the commonest thing
+# a template does and the first version of this script missed all of it: the
+# path pattern above requires a dot, so a bare variable matched nothing and
+# was filed as unreadable. On the Play test suite that was 121 of 170
+# "unresolved" expressions — a scanner reporting a gap where the answer was
+# plainly there.
+BARE = re.compile(r"^[a-z_]\w*$", re.IGNORECASE)
+
 # Groovy and template built-ins that are not data from the action.
 BUILTINS = {
     "play", "request", "session", "flash", "params", "errors", "lang",
@@ -104,6 +112,16 @@ def scan(text: str) -> dict:
                     # which is a query the action never made.
                     "isCall": bool(path.group("call")),
                     "loopVariable": root in bound,
+                })
+                found = True
+
+            # A bare name: the action passed this variable and the template
+            # prints it whole. No field is read off it, so `path` is the name
+            # itself and there is nothing to walk.
+            if not found and BARE.match(raw) and raw not in BUILTINS:
+                accesses.append({
+                    "line": number, "root": raw, "path": raw, "leaf": raw,
+                    "isCall": False, "loopVariable": raw in bound,
                 })
                 found = True
 
