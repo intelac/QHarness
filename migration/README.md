@@ -82,9 +82,21 @@ peaked in enterprise Java around 2010-2013 and its large survivors are behind
 company walls — the one public candidate that looked right, SIGA, turned out
 to have already migrated off Play 1.
 
-So scale itself remains unverified. What has been verified is behaviour
-against the awkward syntax real projects contain, which is a different and
-lesser claim.
+Scale is tested on a synthetic corpus instead — `probes/synth-corpus.py`
+namespaces real applications into one tree, either aggregating several
+(variety, bounded size) or replicating one (any size, no new syntax). At
+**1,024 routes and 1,264 templates**, both probes complete in under a second
+with nothing unparsed.
+
+What that establishes is narrow: the probes do not slow down or break at the
+target size. It cannot establish that they handle syntax they have not seen,
+because the sixteenth copy of an application contains no syntax the first did
+not.
+
+One finding that does carry: the template scan at that size emits **1.6 MB of
+JSON**. No model reads that. Whatever consumes probe output has to work
+through it in pieces, and the pipeline is built that way for this reason
+rather than out of caution.
 
 ## What is missing
 
