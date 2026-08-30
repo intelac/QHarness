@@ -60,9 +60,41 @@ known — `PROJECT-bionimbuz.md` came from running the same probes directly —
 so agreement here is not something a plausible-sounding answer could have
 produced.
 
-**One thing not exercised:** `spill`. 64 templates is not enough output to
-trigger it. The 1.6 MB case from the thousand-template corpus is still
-untested, and it remains the open question that most affects the design.
+## Oversized output
+
+Tested separately on the 1,264-template corpus, whose scan emits 1.6 MB. The
+agent was asked to run the probe and say whether what it received was whole.
+It quoted the answer:
+
+```
+[output truncated; full output: /var/folders/.../dsh-subprocess-…-stdout
+```
+
+So the mechanism is: truncate inline, write the whole thing to a file, hand
+back the path. Nothing is lost — it moves somewhere the agent has to go and
+fetch.
+
+Its reasoning is worth recording as well, because it is the behaviour the
+whole arrangement depends on:
+
+> Hmm, but there's a subtle point: the user might be testing whether I'll
+> honestly report the truncation.
+
+It noticed the output was incomplete, understood that reporting it was the
+point, and did not invent the numbers it could not see. That is exactly the
+failure this was probing for — a model that summarises a truncated result as
+if it had read all of it produces a report that looks complete and is not.
+
+**What this settles for the design.** An agent cannot read the raw probe
+output at scale, and should not: the useful shape is a script that aggregates
+first, with the full JSON on disk for the cases where a specific answer is
+needed. The pipeline was already built that way; this is the measurement
+behind it rather than a precaution.
+
+The temp file is session-scoped and was already collected by the time it was
+looked for, so the file's contents were not verified directly — the mechanism
+is established from the agent's quotation of the notice, not from reading what
+it pointed at.
 
 **One thing observed in passing:** the log shows
 `已重试模型请求（3/5）· 失败原因：Connection error`. The run recovered on its own.
