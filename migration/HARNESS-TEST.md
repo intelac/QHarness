@@ -203,3 +203,48 @@ agent — one that ran six probes and wrote the report — would have produced a
 complete-looking survey that missed the inherited actions. This one produced
 no survey and one real finding. Neither outcome is the one wanted, and the
 difference between them is not obedience.
+
+## Same survey, MTP model
+
+`Qwen3.8-27B-oQ8e-mtp` — multi-token prediction, same weights, decodes several
+tokens per step.
+
+**Faster: 25–28 tok/s against 16–17.** Roughly 60% more throughput, and the
+first three probes were done in six minutes where the previous run took ten to
+reach the same point.
+
+**Not more focused.** Eleven steps, 267K input tokens, thirteen minutes, three
+of six probes, no report. The self-set task list read "1 in progress, 4
+pending" throughout, exactly as before. Speed does not change what a model
+chooses to do with its turn.
+
+### It found a bug in this skill
+
+Worth more than the survey would have been:
+
+> The glob only matched 10 of 64 templates. `app/views/**/*.html` without
+> globstar expands to one level deep (`app/views/*/*.html`), so the `adm/`,
+> `guest/`, and `tags/` templates were never scanned.
+
+Verified: **bash matches 10, zsh matches 64.** `**` needs `globstar`, which
+bash does not enable by default and zsh does.
+
+Every check of that command here ran in zsh, where it works. The skill was
+wrong in exactly the environment it was written for, and no amount of testing
+on this side would have caught it — the shell was the variable, and it was
+never varied.
+
+Fixed: the skill now uses `find … -print0 | xargs -0`, which has no shell
+dependency.
+
+### Why it stalled
+
+Not a digression this time. It was doing the "what the pages need" section:
+scanned all 64 templates, wrote the 1,157-line result to a file, and read it
+back — twice. That is where 267K tokens went.
+
+The probe emits more than the model can hold, and the model's instinct is to
+read all of it. Neither is wrong on its own; together they consume the session.
+The template scan needs a summarising mode — per-template counts and the
+method calls, with the full field lists behind a flag — so that "what the
+pages need" can be answered without loading what every page needs.

@@ -39,7 +39,9 @@ P=/Users/kangyi/projects/QHarness/migration/probes/play1
 
 python3 $P/scan-modules.py .                       # size, languages, modules
 python3 $P/parse-routes.py conf/routes             # every route
-python3 $P/scan-template.py app/views/**/*.html    # what each page needs
+# find, not a glob: `**` needs globstar, which bash does not set by
+# default. `app/views/**/*.html` silently matched 10 of 64 templates.
+find app/views -name '*.html' -print0 | xargs -0 python3 $P/scan-template.py
 python3 $P/scan-imports.py app                     # framework coupling
 python3 $P/scan-models.py app                      # entities and query sites
 python3 $P/scan-tests.py .                         # what can verify a migration
