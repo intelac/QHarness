@@ -4,6 +4,7 @@ import io.nexum.ai.AiTool;
 import io.nexum.ai.McpHost;
 import io.nexum.ai.McpServer;
 import io.nexum.ai.ToolRegistry;
+import io.nexum.web.Json;
 
 import java.time.Duration;
 import java.util.List;
@@ -65,20 +66,33 @@ public final class Main {
                 registry, "fixprobe", "0.1.0", HarnessTools.DESTINATION);
 
         try (McpHost host = new McpHost(mcp, BIND, port)) {
-            System.out.println("fixprobe on " + BIND + ":" + host.port() + "/mcp");
-            System.out.println("nothing is connected yet; harness_connect brings an endpoint up");
+            // The same answer harness_status gives an agent, for a reader that
+            // wants the state of this probe without opening an MCP session.
+            host.answer("/api/status", () -> Json.write(
+                    registry.call("harness_status", java.util.Map.of(), null).data()));
 
-            // A FIX endpoint that disappears without logging out leaves the
-            // counterparty holding a session it believes is live, and the next
-            // logon argues about sequence numbers.
-            CountDownLatch stopped = new CountDownLatch(1);
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                System.out.println("stopping");
-                rig.stopAll();
-                stopped.countDown();
-            }, "fixprobe-shutdown"));
+            // A probe tests whichever engine it was pointed at, so nothing it
+            // connects to can be asked which probes exist. It says so itself,
+            // on this port, and stops saying so when it stops.
+            try (ProbeRegistration registration =
+                    new ProbeRegistration(ProbeRegistration.defaultDirectory(), host.port())) {
+                System.out.println("fixprobe on " + BIND + ":" + host.port() + "/mcp");
+                System.out.println("status on " + BIND + ":" + host.port() + "/api/status");
+                System.out.println("nothing is connected yet; harness_connect brings an endpoint up");
 
-            stopped.await();
+                // A FIX endpoint that disappears without logging out leaves the
+                // counterparty holding a session it believes is live, and the next
+                // logon argues about sequence numbers.
+                CountDownLatch stopped = new CountDownLatch(1);
+                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                    System.out.println("stopping");
+                    rig.stopAll();
+                    registration.close();
+                    stopped.countDown();
+                }, "fixprobe-shutdown"));
+
+                stopped.await();
+            }
         }
         System.out.println("stopped");
     }

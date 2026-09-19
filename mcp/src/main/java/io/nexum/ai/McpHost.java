@@ -51,6 +51,41 @@ public final class McpHost implements AutoCloseable {
         return port;
     }
 
+    /**
+     * Answer a plain GET on this port with a JSON body.
+     *
+     * <p>The MCP endpoint is for a client that speaks MCP. A status page, or
+     * anything else reading this process from outside, would otherwise have to
+     * open an MCP session to ask one question — so a caller can put a read on
+     * the same port instead, and the port stays the one thing to know about a
+     * running process.
+     *
+     * @param path the context path, e.g. {@code "/api/status"}
+     * @param body called per request; its return value is sent as the body
+     */
+    public void answer(String path, java.util.function.Supplier<String> body) {
+        server.createContext(path, exchange -> {
+            try {
+                if (!"GET".equals(exchange.getRequestMethod())) {
+                    exchange.sendResponseHeaders(405, -1);
+                    return;
+                }
+                byte[] bytes = body.get().getBytes(StandardCharsets.UTF_8);
+                exchange.getResponseHeaders().set("Content-Type", "application/json");
+                // Read by a page served from somewhere else — a harness UI on
+                // its own port — and there is nothing here worth withholding
+                // from it: this is a test tool's own state on a loopback bind.
+                exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+                exchange.sendResponseHeaders(200, bytes.length);
+                try (OutputStream out = exchange.getResponseBody()) {
+                    out.write(bytes);
+                }
+            } finally {
+                exchange.close();
+            }
+        });
+    }
+
     @Override
     public void close() {
         server.stop(0);
