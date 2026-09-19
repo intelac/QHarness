@@ -168,8 +168,11 @@ public final class HarnessTools {
 
         @Override
         public String description() {
-            return "Whether each side of the harness is connected and logged on, and how "
-                    + "many messages have crossed it.";
+            return "Whether each side of the harness is connected and logged on, how "
+                    + "many messages have crossed it, and where its sequence numbers "
+                    + "stand: nextSenderSeqNum is the next MsgSeqNum that side will "
+                    + "send, nextTargetSeqNum the next it expects. Both are absent "
+                    + "until there is a session to read them from.";
         }
 
         @Override
@@ -194,12 +197,30 @@ public final class HarnessTools {
                 CounterpartyHarness endpoint = rig.side(name);
                 boolean loggedOn = endpoint != null && endpoint.isLoggedOn();
                 int messages = endpoint == null ? 0 : endpoint.traffic().size();
+                CounterpartyHarness.SeqNums seqNums =
+                        endpoint == null ? null : endpoint.seqNums();
                 text.append(name).append(": ")
                         .append(loggedOn ? "logged on" : "connecting")
-                        .append("  ").append(messages).append(" messages")
-                        .append('\n');
-                rows.add(Map.of("endpoint", name, "started", true,
-                        "loggedOn", loggedOn, "messages", messages));
+                        .append("  ").append(messages).append(" messages");
+                // Sequence numbers only once there is a session to read them
+                // from: a pair of zeroes beside "connecting" reads as a session
+                // that has reset, which is a different thing to report than one
+                // that has not been established yet.
+                if (seqNums != null) {
+                    text.append("  out ").append(seqNums.nextSender())
+                            .append(" in ").append(seqNums.nextTarget());
+                }
+                text.append('\n');
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("endpoint", name);
+                row.put("started", true);
+                row.put("loggedOn", loggedOn);
+                row.put("messages", messages);
+                if (seqNums != null) {
+                    row.put("nextSenderSeqNum", seqNums.nextSender());
+                    row.put("nextTargetSeqNum", seqNums.nextTarget());
+                }
+                rows.add(row);
             }
 
             // The two usual sides are worth mentioning when absent, because a

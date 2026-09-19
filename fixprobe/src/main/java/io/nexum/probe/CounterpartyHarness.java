@@ -51,6 +51,14 @@ public final class CounterpartyHarness implements Application {
     /** One message that crossed the wire, as evidence for a test. */
     public record Traffic(String direction, String msgType, String raw, long at) {}
 
+    /**
+     * Where a session's sequence numbers stand.
+     *
+     * @param nextSender the next MsgSeqNum this endpoint will put on the wire
+     * @param nextTarget the next MsgSeqNum it expects to receive
+     */
+    public record SeqNums(int nextSender, int nextTarget) {}
+
     private final String name;
     private final Role role;
     private final List<Traffic> traffic = new CopyOnWriteArrayList<>();
@@ -109,6 +117,25 @@ public final class CounterpartyHarness implements Application {
         return sessions.values().stream()
                 .map(Session::lookupSession)
                 .anyMatch(session -> session != null && session.isLoggedOn());
+    }
+
+    /**
+     * Where this endpoint's sequence numbers stand, or null before there is a
+     * session to ask.
+     *
+     * <p>Both numbers are the <em>next</em> one, which is what a resend request
+     * or a sequence reset is argued about in: a side that has sent four
+     * messages reports 5, and the gap a counterparty complains of is stated in
+     * these terms rather than in a count of what went before.
+     */
+    public SeqNums seqNums() {
+        return sessions.values().stream()
+                .map(Session::lookupSession)
+                .filter(session -> session != null)
+                .findFirst()
+                .map(session -> new SeqNums(
+                        session.getExpectedSenderNum(), session.getExpectedTargetNum()))
+                .orElse(null);
     }
 
     /** Send a message the caller built, on this endpoint's session. */

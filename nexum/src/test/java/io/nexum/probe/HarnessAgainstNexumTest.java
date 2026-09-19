@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -175,6 +176,57 @@ class HarnessAgainstNexumTest {
         // 434 is what says this refuses a cancel rather than a replace.
         String reject = awaitTrafficContaining("client", "9", "434=1");
         assertTrue(reject.contains("H-4"), reject);
+    }
+
+    @Test
+    @DisplayName("status reports where each side's sequence numbers stand")
+    void statusReportsSequenceNumbers() throws Exception {
+        awaitBothSidesLoggedOn();
+
+        AiTool.Result status = call("harness_status", Map.of());
+
+        assertTrue(status.ok(), status.content());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> sides =
+                (List<Map<String, Object>>) status.data().get("sides");
+        for (Map<String, Object> side : sides) {
+            String endpoint = String.valueOf(side.get("endpoint"));
+            // A logged-on side has numbers; one that never started has none to
+            // report, and reporting a zero there would name a sequence reset.
+            assertTrue(side.containsKey("nextSenderSeqNum"),
+                    endpoint + " is logged on but reports no sender sequence number: " + side);
+            assertTrue(side.containsKey("nextTargetSeqNum"),
+                    endpoint + " is logged on but reports no target sequence number: " + side);
+            // Logon itself has crossed, so neither side is still at 1.
+            assertTrue(((Number) side.get("nextSenderSeqNum")).intValue() > 1,
+                    endpoint + " has sent a logon, so its next is past 1: " + side);
+            assertTrue(((Number) side.get("nextTargetSeqNum")).intValue() > 1,
+                    endpoint + " has received a logon, so its next is past 1: " + side);
+        }
+        assertTrue(status.content().contains(" out "),
+                "the text should say the numbers too: " + status.content());
+    }
+
+    @Test
+    @DisplayName("a side that never started reports no sequence numbers at all")
+    void anUnstartedSideHasNoSequenceNumbers() {
+        HarnessRig empty = new HarnessRig();
+        Map<String, AiTool> isolated = new java.util.HashMap<>();
+        for (AiTool tool : new HarnessTools(empty).tools()) {
+            isolated.put(tool.name(), tool);
+        }
+
+        AiTool.Result status = isolated.get("harness_status").call(Map.of());
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> sides =
+                (List<Map<String, Object>>) status.data().get("sides");
+        for (Map<String, Object> side : sides) {
+            assertFalse(side.containsKey("nextSenderSeqNum"),
+                    "a side that never started has no numbers to report: " + side);
+            assertFalse(side.containsKey("nextTargetSeqNum"),
+                    "a side that never started has no numbers to report: " + side);
+        }
     }
 
     @Test
