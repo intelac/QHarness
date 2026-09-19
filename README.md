@@ -19,7 +19,6 @@ the same tool.
 | `nexum/` | The FIX engine, and the agent tools that read it. |
 | `fixprobe/` | The conformance probe. Its own process; knows nothing of the engine. |
 | `mcp/` | The MCP server both of them are built on — tools, registry, HTTP host. |
-| `plugins/ui-nexum-sessions/` | Browser plugin: live FIX session state beside the composer. |
 | `scripts/` | Driving the probe: one call at a time, or a whole scenario. |
 | `harness/` | **Submodule** — [deepseek-harness](https://github.com/deepseek-ai/deepseek-harness), the agent runtime. |
 | `.claude/skills/` | What to do with either side, for an agent that reads skills. |
@@ -28,10 +27,9 @@ The dependency runs one way. `fixprobe` does not depend on `nexum`, so a probe
 cannot quietly acquire knowledge of the system it is meant to test from the
 outside.
 
-`harness/` is a dependency too, so nothing of ours lives inside it: a local
+`harness/` is a dependency too, and nothing of ours lives inside it: a local
 commit in a vendored tree has to be carried forward through every upstream
-upgrade. Our plugin sits in `plugins/`, and `scripts/sync-plugins.sh` copies it
-into the workspace to be built.
+upgrade, so the submodule is kept at an unmodified upstream tag.
 
 ## Getting it
 
