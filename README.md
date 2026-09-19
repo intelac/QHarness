@@ -19,6 +19,7 @@ the same tool.
 | `nexum/` | The FIX engine, and the agent tools that read it. |
 | `fixprobe/` | The conformance probe. Its own process; knows nothing of the engine. |
 | `mcp/` | The MCP server both of them are built on — tools, registry, HTTP host. |
+| `plugins/ui-fixprobe/` | Browser plugin: the running probes in a Sidebar tab. `scripts/sync-plugins.sh` installs it. |
 | `scripts/` | Driving the probe: one call at a time, or a whole scenario. |
 | `harness/` | **Submodule** — [deepseek-harness](https://github.com/deepseek-ai/deepseek-harness), the agent runtime. |
 | `.claude/skills/` | What to do with either side, for an agent that reads skills. |
@@ -27,9 +28,11 @@ The dependency runs one way. `fixprobe` does not depend on `nexum`, so a probe
 cannot quietly acquire knowledge of the system it is meant to test from the
 outside.
 
-`harness/` is a dependency too, and nothing of ours lives inside it: a local
-commit in a vendored tree has to be carried forward through every upstream
-upgrade, so the submodule is kept at an unmodified upstream tag.
+`harness/` is a dependency too, and nothing of ours is *committed* inside it: a
+local commit in a vendored tree has to be carried forward through every upstream
+upgrade. The submodule stays on an unmodified upstream tag, and the browser
+plugin is copied in by `scripts/sync-plugins.sh` from `plugins/`, which is where
+it lives and is edited. Run that script again after each upgrade.
 
 ## Getting it
 
@@ -110,7 +113,7 @@ question alone.
 ## Tests
 
 ```sh
-mvn test          # 456
+mvn test          # 467
 ```
 
 They are written to fail: each mechanism was checked by reintroducing the bug

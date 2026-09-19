@@ -1,0 +1,78 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px;
+  font-size: 12px;
+}
+
+.state {
+  padding: 16px 12px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+}
+
+.probe {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.port {
+  margin: 0 0 2px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.unreachable {
+  margin: 0;
+  color: var(--dsw-alias-label-error);
+}
+
+.endpoint {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 4px;
+  border-radius: 4px;
+}
+
+.endpoint:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.dot {
+  flex: none;
+  align-self: center;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  corner-shape: round;
+  /* A side that never started is absent rather than failed, so it takes the
+     same quiet fill as any other blank row; only a live one earns a colour. */
+  background: var(--dsw-alias-fill-tertiary);
+}
+
+.dot[data-state='up'] {
+  background: var(--dsw-alias-state-success-primary);
+}
+
+.dot[data-state='connecting'] {
+  background: var(--dsw-alias-state-warn-tertiary);
+}
+
+.name {
+  color: var(--dsw-alias-label-primary);
+}
+
+.label,
+.detail {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.seq {
+  margin-left: auto;
+  color: var(--dsw-alias-label-secondary);
+  font-variant-numeric: tabular-nums;
+}
