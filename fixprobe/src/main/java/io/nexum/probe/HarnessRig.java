@@ -39,8 +39,14 @@ public final class HarnessRig {
     /** The side that answers as a market. */
     public static final String MARKET = "market";
 
+    /** The version an endpoint speaks unless a scenario names another. */
+    public static final ProbeFixVersion DEFAULT_VERSION = ProbeFixVersion.FIX44;
+
     private final Map<String, CounterpartyHarness> endpoints = new ConcurrentHashMap<>();
-    private final HarnessMessages messages = new HarnessMessages();
+    // Per endpoint, not one for the rig: a scenario that stands a 4.2 client
+    // beside a 4.4 market is testing exactly the conversion a gateway does, and
+    // one shared builder would send both sides the same version's messages.
+    private final Map<String, HarnessMessages> builders = new ConcurrentHashMap<>();
 
     /**
      * Bring an endpoint up under a name.
@@ -50,11 +56,13 @@ public final class HarnessRig {
      *     valid
      * @param dials whether this endpoint dials out (a client) or waits to be
      *     dialled (a market)
+     * @param version the FIX version this endpoint speaks
      * @throws IllegalStateException when the name is already running, so a
      *     scenario adding an endpoint cannot silently replace one
      */
     public void connect(String name, boolean dials, String host, int port,
-                        String senderCompId, String targetCompId) throws Exception {
+                        String senderCompId, String targetCompId,
+                        ProbeFixVersion version) throws Exception {
 
         if (endpoints.containsKey(name)) {
             throw new IllegalStateException(
@@ -64,8 +72,15 @@ public final class HarnessRig {
         CounterpartyHarness endpoint = new CounterpartyHarness(
                 name, dials ? CounterpartyHarness.Role.INITIATOR
                             : CounterpartyHarness.Role.ACCEPTOR);
-        endpoint.start(host, port, senderCompId, targetCompId);
+        endpoint.start(host, port, senderCompId, targetCompId, version);
         endpoints.put(name, endpoint);
+        builders.put(name, new HarnessMessages(version));
+    }
+
+    /** Bring an endpoint up speaking {@link #DEFAULT_VERSION}. */
+    public void connect(String name, boolean dials, String host, int port,
+                        String senderCompId, String targetCompId) throws Exception {
+        connect(name, dials, host, port, senderCompId, targetCompId, DEFAULT_VERSION);
     }
 
     /**
@@ -76,13 +91,21 @@ public final class HarnessRig {
      * listens.
      */
     public void connect(String side, String host, int port,
+                        String senderCompId, String targetCompId,
+                        ProbeFixVersion version) throws Exception {
+        connect(side, dialsFor(side), host, port, senderCompId, targetCompId, version);
+    }
+
+    /** Bring up one of the two usual sides, speaking {@link #DEFAULT_VERSION}. */
+    public void connect(String side, String host, int port,
                         String senderCompId, String targetCompId) throws Exception {
-        connect(side, dialsFor(side), host, port, senderCompId, targetCompId);
+        connect(side, host, port, senderCompId, targetCompId, DEFAULT_VERSION);
     }
 
     /** Take an endpoint down; doing so twice is not an error. */
     public void disconnect(String name) {
         CounterpartyHarness existing = endpoints.remove(name);
+        builders.remove(name);
         if (existing != null) {
             existing.stop();
         }
@@ -115,9 +138,17 @@ public final class HarnessRig {
         return on(MARKET, action);
     }
 
-    /** The message builders every endpoint sends through. */
-    public HarnessMessages messages() {
-        return messages;
+    /**
+     * The message builder for one endpoint, which builds for the version that
+     * endpoint speaks.
+     *
+     * @param name the endpoint.
+     * @return its builder, or one for {@link #DEFAULT_VERSION} when nothing is
+     *     running under that name — the caller is about to be told the endpoint
+     *     is not started, and a null here would say it less clearly.
+     */
+    public HarnessMessages messagesFor(String name) {
+        return builders.getOrDefault(name, new HarnessMessages(DEFAULT_VERSION));
     }
 
     /** Forget the traffic on every endpoint. */

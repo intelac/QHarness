@@ -65,6 +65,7 @@ public final class CounterpartyHarness implements Application {
     private final Map<String, SessionID> sessions = new ConcurrentHashMap<>();
 
     private quickfix.Connector connector;
+    private ProbeFixVersion version = ProbeFixVersion.FIX44;
 
     /**
      * @param name what this endpoint is called in tool output and errors, so a
@@ -84,16 +85,19 @@ public final class CounterpartyHarness implements Application {
      * @param port the port to dial or to listen on
      * @param senderCompId who this endpoint claims to be
      * @param targetCompId who it expects to be talking to
+     * @param version the FIX version this endpoint speaks
      */
     public synchronized void start(
-            String host, int port, String senderCompId, String targetCompId) throws Exception {
+            String host, int port, String senderCompId, String targetCompId,
+            ProbeFixVersion version) throws Exception {
 
         if (connector != null) {
             throw new IllegalStateException(name + " is already running");
         }
+        this.version = version;
         String settings = role == Role.INITIATOR
-                ? initiatorSettings(host, port, senderCompId, targetCompId)
-                : acceptorSettings(port, senderCompId, targetCompId);
+                ? initiatorSettings(host, port, senderCompId, targetCompId, version)
+                : acceptorSettings(port, senderCompId, targetCompId, version);
 
         SessionSettings parsed = new SessionSettings(
                 new ByteArrayInputStream(settings.getBytes(StandardCharsets.UTF_8)));
@@ -178,10 +182,16 @@ public final class CounterpartyHarness implements Application {
         return role;
     }
 
+    /** The FIX version this endpoint speaks. */
+    public ProbeFixVersion version() {
+        return version;
+    }
+
     // ------------------------------------------------------------------
 
     private static String initiatorSettings(
-            String host, int port, String senderCompId, String targetCompId) {
+            String host, int port, String senderCompId, String targetCompId,
+            ProbeFixVersion version) {
         return """
                 [default]
                 ConnectionType=initiator
@@ -195,13 +205,15 @@ public final class CounterpartyHarness implements Application {
                 ResetOnLogon=Y
 
                 [session]
-                BeginString=FIX.4.4
-                SenderCompID=%s
+                BeginString=%s
+                %sSenderCompID=%s
                 TargetCompID=%s
-                """.formatted(host, port, senderCompId, targetCompId);
+                """.formatted(host, port, version.beginString(),
+                        applVerIDSetting(version), senderCompId, targetCompId);
     }
 
-    private static String acceptorSettings(int port, String senderCompId, String targetCompId) {
+    private static String acceptorSettings(
+            int port, String senderCompId, String targetCompId, ProbeFixVersion version) {
         return """
                 [default]
                 ConnectionType=acceptor
@@ -213,10 +225,23 @@ public final class CounterpartyHarness implements Application {
                 ResetOnLogon=Y
 
                 [session]
-                BeginString=FIX.4.4
-                SenderCompID=%s
+                BeginString=%s
+                %sSenderCompID=%s
                 TargetCompID=%s
-                """.formatted(port, senderCompId, targetCompId);
+                """.formatted(port, version.beginString(),
+                        applVerIDSetting(version), senderCompId, targetCompId);
+    }
+
+    /**
+     * The DefaultApplVerID line a FIXT session needs, or nothing for a 4.x one.
+     *
+     * <p>FIXT.1.1 carries any application version, so a session that does not
+     * name one leaves each side to fall back on its own default — which is how
+     * two correctly configured counterparties disagree about what they are
+     * reading. QuickFIX refuses to start a FIXT session without it.
+     */
+    private static String applVerIDSetting(ProbeFixVersion version) {
+        return version.isFixt() ? "DefaultApplVerID=" + version.applVerID() + "\n                " : "";
     }
 
     private void record(String direction, Message message) {

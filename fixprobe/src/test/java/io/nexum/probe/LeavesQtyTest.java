@@ -96,7 +96,7 @@ class LeavesQtyTest {
         // the rule passes whatever the rule becomes, including its removal.
         double leaves = HarnessTools.leavesQty(arguments);
 
-        quickfix.Message message = rig.messages().executionReport(
+        quickfix.Message message = rig.messagesFor(HarnessRig.MARKET).executionReport(
                 "MKT-1", "X-1", null, "BP", '1', num(arguments, "orderQty"),
                 '0', '0', 0, num(arguments, "cumQty"), leaves, 50, null);
         try {

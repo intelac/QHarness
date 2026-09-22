@@ -39,6 +39,25 @@
       <artifactId>quickfixj-messages-fix44</artifactId>
       <version>${quickfixj.version}</version>
     </dependency>
+    <!-- One per version the engine and the probe can speak. A dictionary is
+         what BeginString selects at session setup; FIXT.1.1 carries the
+         session layer for the 5.0 series and names its application version
+         separately. -->
+    <dependency>
+      <groupId>org.quickfixj</groupId>
+      <artifactId>quickfixj-messages-fix42</artifactId>
+      <version>${quickfixj.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.quickfixj</groupId>
+      <artifactId>quickfixj-messages-fix50</artifactId>
+      <version>${quickfixj.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.quickfixj</groupId>
+      <artifactId>quickfixj-messages-fixt11</artifactId>
+      <version>${quickfixj.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>

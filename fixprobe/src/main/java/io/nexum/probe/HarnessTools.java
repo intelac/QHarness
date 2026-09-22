@@ -79,6 +79,11 @@ public final class HarnessTools {
                     "Who the harness expects to be talking to, i.e. the system under test"));
             parameters.put("host", Parameter.optional("string",
                     "Where the system under test listens; client side only, default 127.0.0.1"));
+            parameters.put("version", Parameter.optionalOneOf(
+                    "Which FIX version this endpoint speaks. Each endpoint has its"
+                            + " own, so a 4.2 client can be stood beside a 4.4 market to"
+                            + " test what a gateway does between them. Default FIX44.",
+                    "FIX42", "FIX44", "FIX50"));
             return parameters;
         }
 
@@ -104,21 +109,29 @@ public final class HarnessTools {
             int port = (int) number(arguments, "port");
             String sender = text(arguments, "senderCompId");
             String target = text(arguments, "targetCompId");
+            ProbeFixVersion version;
+            try {
+                version = arguments.get("version") == null
+                        ? HarnessRig.DEFAULT_VERSION
+                        : ProbeFixVersion.of(text(arguments, "version"));
+            } catch (IllegalArgumentException unknown) {
+                return Result.failed(unknown.getMessage());
+            }
             try {
                 // The two usual sides imply which way they connect; a name the
                 // scenario invented does not, and guessing for it would stand
                 // up an endpoint at the wrong end of the connection.
                 if (dials == null) {
-                    rig.connect(side, host, port, sender, target);
+                    rig.connect(side, host, port, sender, target, version);
                 } else {
-                    rig.connect(side, "out".equals(dials), host, port, sender, target);
+                    rig.connect(side, "out".equals(dials), host, port, sender, target, version);
                 }
             } catch (Exception failure) {
                 return Result.failed("could not bring up " + side + ": "
                         + failure.getMessage());
             }
-            return Result.of(side + " is up; call harness_status to see whether it "
-                    + "has logged on yet");
+            return Result.of(side + " is up on " + version.beginString()
+                    + "; call harness_status to see whether it has logged on yet");
         }
     }
 
@@ -201,7 +214,9 @@ public final class HarnessTools {
                         endpoint == null ? null : endpoint.seqNums();
                 text.append(name).append(": ")
                         .append(loggedOn ? "logged on" : "connecting")
-                        .append("  ").append(messages).append(" messages");
+                        .append("  ").append(endpoint == null
+                                ? "" : endpoint.version().beginString() + "  ")
+                        .append(messages).append(" messages");
                 // Sequence numbers only once there is a session to read them
                 // from: a pair of zeroes beside "connecting" reads as a session
                 // that has reset, which is a different thing to report than one
@@ -216,6 +231,9 @@ public final class HarnessTools {
                 row.put("started", true);
                 row.put("loggedOn", loggedOn);
                 row.put("messages", messages);
+                if (endpoint != null) {
+                    row.put("version", endpoint.version().beginString());
+                }
                 if (seqNums != null) {
                     row.put("nextSenderSeqNum", seqNums.nextSender());
                     row.put("nextTargetSeqNum", seqNums.nextTarget());
@@ -284,7 +302,7 @@ public final class HarnessTools {
             return rig.on(endpointOr(arguments, HarnessRig.CLIENT), endpoint -> {
                 Double price = arguments.get("price") == null
                         ? null : number(arguments, "price");
-                endpoint.send(rig.messages().newOrderSingle(
+                endpoint.send(rig.messagesFor(endpointOr(arguments, HarnessRig.CLIENT)).newOrderSingle(
                         text(arguments, "clOrdId"), text(arguments, "symbol"),
                         side(arguments), number(arguments, "quantity"), price,
                         arguments.get("account") == null ? null : text(arguments, "account"),
@@ -338,7 +356,7 @@ public final class HarnessTools {
         @Override
         public Result call(Map<String, Object> arguments) {
             return rig.on(endpointOr(arguments, HarnessRig.CLIENT), endpoint -> {
-                endpoint.send(rig.messages().cancelRequest(
+                endpoint.send(rig.messagesFor(endpointOr(arguments, HarnessRig.CLIENT)).cancelRequest(
                         text(arguments, "clOrdId"), text(arguments, "origClOrdId"),
                         text(arguments, "symbol"), side(arguments),
                         number(arguments, "quantity"), onBehalfOf(arguments)));
@@ -393,7 +411,7 @@ public final class HarnessTools {
         public Result call(Map<String, Object> arguments) {
             return rig.on(endpointOr(arguments, HarnessRig.CLIENT), endpoint -> {
                 Double price = arguments.get("price") == null ? null : number(arguments, "price");
-                endpoint.send(rig.messages().replaceRequest(
+                endpoint.send(rig.messagesFor(endpointOr(arguments, HarnessRig.CLIENT)).replaceRequest(
                         text(arguments, "clOrdId"), text(arguments, "origClOrdId"),
                         text(arguments, "symbol"), side(arguments),
                         number(arguments, "quantity"), price, onBehalfOf(arguments)));
@@ -475,7 +493,7 @@ public final class HarnessTools {
         @Override
         public Result call(Map<String, Object> arguments) {
             return rig.on(endpointOr(arguments, HarnessRig.MARKET), endpoint -> {
-                endpoint.send(rig.messages().executionReport(
+                endpoint.send(rig.messagesFor(endpointOr(arguments, HarnessRig.MARKET)).executionReport(
                         text(arguments, "orderId"), text(arguments, "clOrdId"),
                         arguments.get("origClOrdId") == null ? null : text(arguments, "origClOrdId"),
                         text(arguments, "symbol"), side(arguments),
@@ -540,7 +558,7 @@ public final class HarnessTools {
         @Override
         public Result call(Map<String, Object> arguments) {
             return rig.on(endpointOr(arguments, HarnessRig.MARKET), endpoint -> {
-                endpoint.send(rig.messages().cancelReject(
+                endpoint.send(rig.messagesFor(endpointOr(arguments, HarnessRig.MARKET)).cancelReject(
                         text(arguments, "orderId"), text(arguments, "clOrdId"),
                         text(arguments, "origClOrdId"),
                         ordStatus(text(arguments, "ordStatus")),

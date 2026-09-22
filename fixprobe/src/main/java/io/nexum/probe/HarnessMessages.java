@@ -6,11 +6,13 @@ import quickfix.field.ClOrdID;
 import quickfix.field.CumQty;
 import quickfix.field.CxlRejResponseTo;
 import quickfix.field.ExecID;
+import quickfix.field.ExecTransType;
 import quickfix.field.ExecType;
 import quickfix.field.HandlInst;
 import quickfix.field.LastPx;
 import quickfix.field.LastQty;
 import quickfix.field.LeavesQty;
+import quickfix.field.MsgType;
 import quickfix.field.OrdStatus;
 import quickfix.field.OrdType;
 import quickfix.field.OrderID;
@@ -39,21 +41,36 @@ import java.util.concurrent.atomic.AtomicLong;
 public final class HarnessMessages {
 
     private final AtomicLong execIds = new AtomicLong(1);
+    private final VersionedMessages messages;
+
+    /**
+     * @param version the FIX version the session these messages go out on speaks.
+     */
+    public HarnessMessages(ProbeFixVersion version) {
+        this.messages = new VersionedMessages(version);
+    }
+
+    /** The version these messages are built for. */
+    public ProbeFixVersion version() {
+        return messages.version();
+    }
 
     /** Client side: a new order. */
     public Message newOrderSingle(
             String clOrdId, String symbol, char side, double quantity,
             Double limitPrice, String account, String onBehalfOf) {
 
-        quickfix.fix44.NewOrderSingle order = new quickfix.fix44.NewOrderSingle(
-                new ClOrdID(clOrdId), new Side(side), new TransactTime(),
-                new OrdType(limitPrice == null ? OrdType.MARKET : OrdType.LIMIT));
-        order.set(new Symbol(symbol));
-        order.set(new OrderQty(quantity));
-        order.set(new HandlInst(
+        Message order = messages.create(MsgType.ORDER_SINGLE);
+        order.setField(new ClOrdID(clOrdId));
+        order.setField(new Side(side));
+        order.setField(new TransactTime());
+        order.setField(new OrdType(limitPrice == null ? OrdType.MARKET : OrdType.LIMIT));
+        order.setField(new Symbol(symbol));
+        order.setField(new OrderQty(quantity));
+        order.setField(new HandlInst(
                 HandlInst.AUTOMATED_EXECUTION_ORDER_PRIVATE_NO_BROKER_INTERVENTION));
         if (limitPrice != null) {
-            order.set(new Price(limitPrice));
+            order.setField(new Price(limitPrice));
         }
         if (account != null && !account.isBlank()) {
             order.setString(quickfix.field.Account.FIELD, account);
@@ -67,11 +84,13 @@ public final class HarnessMessages {
             String clOrdId, String origClOrdId, String symbol, char side, double quantity,
             String onBehalfOf) {
 
-        quickfix.fix44.OrderCancelRequest cancel = new quickfix.fix44.OrderCancelRequest(
-                new OrigClOrdID(origClOrdId), new ClOrdID(clOrdId),
-                new Side(side), new TransactTime());
-        cancel.set(new Symbol(symbol));
-        cancel.set(new OrderQty(quantity));
+        Message cancel = messages.create(MsgType.ORDER_CANCEL_REQUEST);
+        cancel.setField(new OrigClOrdID(origClOrdId));
+        cancel.setField(new ClOrdID(clOrdId));
+        cancel.setField(new Side(side));
+        cancel.setField(new TransactTime());
+        cancel.setField(new Symbol(symbol));
+        cancel.setField(new OrderQty(quantity));
         stamp(cancel, onBehalfOf);
         return cancel;
     }
@@ -81,15 +100,16 @@ public final class HarnessMessages {
             String clOrdId, String origClOrdId, String symbol, char side,
             double quantity, Double limitPrice, String onBehalfOf) {
 
-        quickfix.fix44.OrderCancelReplaceRequest replace =
-                new quickfix.fix44.OrderCancelReplaceRequest(
-                        new OrigClOrdID(origClOrdId), new ClOrdID(clOrdId),
-                        new Side(side), new TransactTime(),
-                        new OrdType(limitPrice == null ? OrdType.MARKET : OrdType.LIMIT));
-        replace.set(new Symbol(symbol));
-        replace.set(new OrderQty(quantity));
+        Message replace = messages.create(MsgType.ORDER_CANCEL_REPLACE_REQUEST);
+        replace.setField(new OrigClOrdID(origClOrdId));
+        replace.setField(new ClOrdID(clOrdId));
+        replace.setField(new Side(side));
+        replace.setField(new TransactTime());
+        replace.setField(new OrdType(limitPrice == null ? OrdType.MARKET : OrdType.LIMIT));
+        replace.setField(new Symbol(symbol));
+        replace.setField(new OrderQty(quantity));
         if (limitPrice != null) {
-            replace.set(new Price(limitPrice));
+            replace.setField(new Price(limitPrice));
         }
         stamp(replace, onBehalfOf);
         return replace;
@@ -111,27 +131,33 @@ public final class HarnessMessages {
             double orderQty, char execType, char ordStatus,
             double lastQty, double cumQty, double leavesQty, double price, String text) {
 
-        quickfix.fix44.ExecutionReport report = new quickfix.fix44.ExecutionReport(
-                new OrderID(orderId),
-                new ExecID("HARNESS-" + execIds.getAndIncrement()),
-                new ExecType(execType),
-                new OrdStatus(ordStatus),
-                new Side(side),
-                new LeavesQty(leavesQty),
-                new CumQty(cumQty),
-                new AvgPx(price));
-        report.set(new ClOrdID(clOrdId));
-        report.set(new Symbol(symbol));
-        report.set(new OrderQty(orderQty));
+        Message report = messages.create(MsgType.EXECUTION_REPORT);
+        report.setField(new OrderID(orderId));
+        report.setField(new ExecID("HARNESS-" + execIds.getAndIncrement()));
+        report.setField(new ExecType(execType));
+        report.setField(new OrdStatus(ordStatus));
+        report.setField(new Side(side));
+        report.setField(new LeavesQty(leavesQty));
+        report.setField(new CumQty(cumQty));
+        report.setField(new AvgPx(price));
+        if (messages.version() == ProbeFixVersion.FIX42) {
+            // Required through 4.2 and gone by 4.4: a report without it is
+            // rejected outright by a 4.2 counterparty, so the version that
+            // needs it gets it and no other does.
+            report.setField(new ExecTransType(ExecTransType.NEW));
+        }
+        report.setField(new ClOrdID(clOrdId));
+        report.setField(new Symbol(symbol));
+        report.setField(new OrderQty(orderQty));
         if (origClOrdId != null && !origClOrdId.isBlank()) {
-            report.set(new OrigClOrdID(origClOrdId));
+            report.setField(new OrigClOrdID(origClOrdId));
         }
         if (lastQty > 0) {
-            report.set(new LastQty(lastQty));
-            report.set(new LastPx(price));
+            report.setField(new LastQty(lastQty));
+            report.setField(new LastPx(price));
         }
         if (text != null && !text.isBlank()) {
-            report.set(new Text(text));
+            report.setField(new Text(text));
         }
         return report;
     }
@@ -148,14 +174,14 @@ public final class HarnessMessages {
             String orderId, String clOrdId, String origClOrdId,
             char ordStatus, char responseTo, String reason) {
 
-        quickfix.fix44.OrderCancelReject reject = new quickfix.fix44.OrderCancelReject(
-                new OrderID(orderId),
-                new ClOrdID(clOrdId),
-                new OrigClOrdID(origClOrdId),
-                new OrdStatus(ordStatus),
-                new CxlRejResponseTo(responseTo));
+        Message reject = messages.create(MsgType.ORDER_CANCEL_REJECT);
+        reject.setField(new OrderID(orderId));
+        reject.setField(new ClOrdID(clOrdId));
+        reject.setField(new OrigClOrdID(origClOrdId));
+        reject.setField(new OrdStatus(ordStatus));
+        reject.setField(new CxlRejResponseTo(responseTo));
         if (reason != null && !reason.isBlank()) {
-            reject.set(new Text(reason));
+            reject.setField(new Text(reason));
         }
         return reject;
     }
