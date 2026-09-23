@@ -50,6 +50,10 @@ public final class FixTags {
     public static final int HOP_REF_ID = 630;
     public static final int NO_HOPS = 627;
     public static final int ON_BEHALF_OF_SUB_ID = 116;
+    /** Which application version this message is in; FIXT sessions only. */
+    public static final int APPL_VER_ID = 1128;
+    /** The application version a FIXT session negotiated at logon. */
+    public static final int DEFAULT_APPL_VER_ID = 1137;
 
     // --- order identity ---------------------------------------------------
 

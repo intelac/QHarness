@@ -57,7 +57,13 @@ public final class FixLayers {
             FixTags.NO_HOPS,
             FixTags.HOP_COMP_ID,
             FixTags.HOP_SENDING_TIME,
-            FixTags.HOP_REF_ID);
+            FixTags.HOP_REF_ID,
+            // What version a FIXT session is speaking, which each hop states
+            // for itself: a router that reads 5.0 from a client and writes 4.4
+            // to a venue carried the order, not the protocol level it arrived
+            // under, and recording it against the order would say otherwise.
+            FixTags.APPL_VER_ID,
+            FixTags.DEFAULT_APPL_VER_ID);
 
     /**
      * Computed by the engine on the way out and never carried from above.

@@ -58,6 +58,7 @@ public final class FixDictionary {
             Map.entry(102, "CxlRejReason"),
             Map.entry(103, "OrdRejReason"),
             Map.entry(108, "HeartBtInt"),
+            Map.entry(20, "ExecTransType"),
             Map.entry(115, "OnBehalfOfCompID"),
             Map.entry(126, "ExpireTime"),
             Map.entry(128, "DeliverToCompID"),
@@ -69,6 +70,8 @@ public final class FixDictionary {
             Map.entry(207, "SecurityExchange"),
             Map.entry(336, "TradingSessionID"),
             Map.entry(378, "ExecRestatementReason"),
+            Map.entry(1128, "ApplVerID"),
+            Map.entry(1137, "DefaultApplVerID"),
             Map.entry(432, "ExpireDate"),
             Map.entry(434, "CxlRejResponseTo"),
             Map.entry(448, "PartyID"),
@@ -116,6 +119,10 @@ public final class FixDictionary {
                     Map.entry("E", "PendingReplace")),
             150, Map.ofEntries(
                     Map.entry("0", "New"),
+                    // Through 4.2 a fill said so here; 4.4 replaced both with
+                    // "F" and reads the quantity to tell them apart.
+                    Map.entry("1", "PartialFill (4.2)"),
+                    Map.entry("2", "Fill (4.2)"),
                     Map.entry("3", "DoneForDay"),
                     Map.entry("4", "Canceled"),
                     Map.entry("5", "Replaced"),
