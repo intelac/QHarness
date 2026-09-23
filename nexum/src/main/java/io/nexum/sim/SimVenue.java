@@ -1,5 +1,7 @@
 package io.nexum.sim;
 
+import io.nexum.message.FixVersion;
+
 import quickfix.Acceptor;
 import quickfix.Application;
 import quickfix.DefaultMessageFactory;
@@ -14,6 +16,7 @@ import quickfix.field.AvgPx;
 import quickfix.field.ClOrdID;
 import quickfix.field.CumQty;
 import quickfix.field.ExecID;
+import quickfix.field.ExecTransType;
 import quickfix.field.ExecType;
 import quickfix.field.LastPx;
 import quickfix.field.LastQty;
@@ -44,6 +47,7 @@ public final class SimVenue implements Application {
 
     private final AtomicLong sequence = new AtomicLong(1);
     private final boolean rejectMode;
+    private final FixVersion version;
 
     /**
      * Symbols the venue accepts and then says nothing about, so the monitoring
@@ -133,10 +137,23 @@ public final class SimVenue implements Application {
     }
 
     public SimVenue(boolean rejectMode) {
+        this(rejectMode, FixVersion.FIX44);
+    }
+
+    /** A venue answering in one version. */
+    public SimVenue(boolean rejectMode, FixVersion version) {
         this.rejectMode = rejectMode;
+        this.version = version;
     }
 
     public static SocketAcceptor start(int port, String senderCompId, String targetCompId)
+            throws Exception {
+        return start(port, senderCompId, targetCompId, FixVersion.FIX44);
+    }
+
+    /** Start a venue speaking one version, to a router that must dial it in that version. */
+    public static SocketAcceptor start(
+            int port, String senderCompId, String targetCompId, FixVersion version)
             throws Exception {
         String config = """
                 [default]
@@ -149,14 +166,14 @@ public final class SimVenue implements Application {
                 ResetOnLogon=Y
 
                 [session]
-                BeginString=FIX.4.4
-                SenderCompID=%s
+                %sSenderCompID=%s
                 TargetCompID=%s
-                """.formatted(port, senderCompId, targetCompId);
+                """.formatted(port, SimMessages.sessionVersionLines(version),
+                        senderCompId, targetCompId);
 
         SessionSettings settings = new SessionSettings(
                 new ByteArrayInputStream(config.getBytes(StandardCharsets.UTF_8)));
-        SimVenue venue = new SimVenue(false);
+        SimVenue venue = new SimVenue(false, version);
         SocketAcceptor acceptor = new SocketAcceptor(
                 venue, new MemoryStoreFactory(), settings,
                 new DefaultMessageFactory());
@@ -324,14 +341,14 @@ public final class SimVenue implements Application {
     private Message cancelReject(
             String clOrdId, String origClOrdId, String responseTo, String reason) {
 
-        quickfix.fix44.OrderCancelReject reject = new quickfix.fix44.OrderCancelReject(
-                new OrderID("SIM-REJ"),
-                new ClOrdID(clOrdId),
-                new OrigClOrdID(origClOrdId),
-                // The order's own status, which is why reading 39 here tells you
-                // nothing about the refusal — 434 is what distinguishes it.
-                new OrdStatus(OrdStatus.NEW),
-                new CxlRejResponseTo(responseTo.charAt(0)));
+        Message reject = SimMessages.create(version, MsgType.ORDER_CANCEL_REJECT);
+        reject.setField(new OrderID("SIM-REJ"));
+        reject.setField(new ClOrdID(clOrdId));
+        reject.setField(new OrigClOrdID(origClOrdId));
+        // The order's own status, which is why reading 39 here tells you
+        // nothing about the refusal — 434 is what distinguishes it.
+        reject.setField(new OrdStatus(OrdStatus.NEW));
+        reject.setField(new CxlRejResponseTo(responseTo.charAt(0)));
         reject.setString(58, reason);
         return reject;
     }
@@ -463,21 +480,24 @@ public final class SimVenue implements Application {
             char execType, char ordStatus, double lastQty, double cumQty, double leavesQty,
             double price) {
 
-        quickfix.fix44.ExecutionReport report = new quickfix.fix44.ExecutionReport(
-                new OrderID(orderId),
-                new ExecID("EXEC-" + sequence.getAndIncrement()),
-                new ExecType(execType),
-                new OrdStatus(ordStatus),
-                new Side(side),
-                new LeavesQty(leavesQty),
-                new CumQty(cumQty),
-                new AvgPx(price));
-        report.set(new ClOrdID(clOrdId));
-        report.set(new Symbol(symbol));
-        report.set(new OrderQty(orderQty));
+        Message report = SimMessages.create(version, MsgType.EXECUTION_REPORT);
+        report.setField(new OrderID(orderId));
+        report.setField(new ExecID("EXEC-" + sequence.getAndIncrement()));
+        report.setField(new ExecType(SimMessages.execType(version, execType, leavesQty)));
+        report.setField(new OrdStatus(ordStatus));
+        report.setField(new Side(side));
+        report.setField(new LeavesQty(leavesQty));
+        report.setField(new CumQty(cumQty));
+        report.setField(new AvgPx(price));
+        if (version.usesExecTransType()) {
+            report.setField(new ExecTransType(ExecTransType.NEW));
+        }
+        report.setField(new ClOrdID(clOrdId));
+        report.setField(new Symbol(symbol));
+        report.setField(new OrderQty(orderQty));
         if (lastQty > 0) {
-            report.set(new LastQty(lastQty));
-            report.set(new LastPx(price));
+            report.setField(new LastQty(lastQty));
+            report.setField(new LastPx(price));
         }
         return report;
     }

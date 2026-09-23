@@ -1,5 +1,7 @@
 package io.nexum.sim;
 
+import io.nexum.message.FixVersion;
+
 import quickfix.Application;
 import quickfix.DefaultMessageFactory;
 import quickfix.FieldNotFound;
@@ -36,9 +38,18 @@ public final class SimClient implements Application {
 
     private static volatile SessionID sessionID;
     private static volatile boolean loggedOn;
+    private static volatile FixVersion version = FixVersion.FIX44;
 
     public static SocketInitiator start(int port, String senderCompId, String targetCompId)
             throws Exception {
+        return start(port, senderCompId, targetCompId, FixVersion.FIX44);
+    }
+
+    /** Start a client speaking one version, to a router that must speak it too. */
+    public static SocketInitiator start(
+            int port, String senderCompId, String targetCompId, FixVersion speaking)
+            throws Exception {
+        version = speaking;
         String config = """
                 [default]
                 ConnectionType=initiator
@@ -53,10 +64,10 @@ public final class SimClient implements Application {
                 FileLogPath=target/fixlogs
 
                 [session]
-                BeginString=FIX.4.4
-                SenderCompID=%s
+                %sSenderCompID=%s
                 TargetCompID=%s
-                """.formatted(port, senderCompId, targetCompId);
+                """.formatted(port, SimMessages.sessionVersionLines(speaking),
+                        senderCompId, targetCompId);
 
         SessionSettings settings = new SessionSettings(
                 new ByteArrayInputStream(config.getBytes(StandardCharsets.UTF_8)));
@@ -78,16 +89,16 @@ public final class SimClient implements Application {
     public static void sendOrderAs(
             String onBehalfOf, String clOrdId, String symbol, double qty, String exchange) {
 
-        quickfix.fix44.NewOrderSingle order = new quickfix.fix44.NewOrderSingle(
-                new ClOrdID(clOrdId),
-                new Side(Side.BUY),
-                new TransactTime(),
-                new OrdType(OrdType.LIMIT));
-        order.set(new Symbol(symbol));
-        order.set(new OrderQty(qty));
-        order.set(new Price(150.0));
-        order.set(new SecurityExchange(exchange));
-        order.set(new HandlInst(HandlInst.AUTOMATED_EXECUTION_ORDER_PRIVATE_NO_BROKER_INTERVENTION));
+        Message order = SimMessages.create(version, MsgType.ORDER_SINGLE);
+        order.setField(new ClOrdID(clOrdId));
+        order.setField(new Side(Side.BUY));
+        order.setField(new TransactTime());
+        order.setField(new OrdType(OrdType.LIMIT));
+        order.setField(new Symbol(symbol));
+        order.setField(new OrderQty(qty));
+        order.setField(new Price(150.0));
+        order.setField(new SecurityExchange(exchange));
+        order.setField(new HandlInst(HandlInst.AUTOMATED_EXECUTION_ORDER_PRIVATE_NO_BROKER_INTERVENTION));
         order.getHeader().setString(OnBehalfOfCompID.FIELD, onBehalfOf);
 
         try {
@@ -101,12 +112,12 @@ public final class SimClient implements Application {
 
     /** Ask to cancel an order the client placed earlier. */
     public static void sendCancel(String clOrdId, String origClOrdId, String symbol) {
-        quickfix.fix44.OrderCancelRequest request = new quickfix.fix44.OrderCancelRequest(
-                new quickfix.field.OrigClOrdID(origClOrdId),
-                new ClOrdID(clOrdId),
-                new Side(Side.BUY),
-                new TransactTime());
-        request.set(new Symbol(symbol));
+        Message request = SimMessages.create(version, MsgType.ORDER_CANCEL_REQUEST);
+        request.setField(new quickfix.field.OrigClOrdID(origClOrdId));
+        request.setField(new ClOrdID(clOrdId));
+        request.setField(new Side(Side.BUY));
+        request.setField(new TransactTime());
+        request.setField(new Symbol(symbol));
         request.getHeader().setString(OnBehalfOfCompID.FIELD, "FUNDX");
         dispatch(request, "cancel " + origClOrdId);
     }
@@ -115,16 +126,15 @@ public final class SimClient implements Application {
     public static void sendReplace(
             String clOrdId, String origClOrdId, String symbol, double newQty, double newPrice) {
 
-        quickfix.fix44.OrderCancelReplaceRequest request =
-                new quickfix.fix44.OrderCancelReplaceRequest(
-                        new quickfix.field.OrigClOrdID(origClOrdId),
-                        new ClOrdID(clOrdId),
-                        new Side(Side.BUY),
-                        new TransactTime(),
-                        new OrdType(OrdType.LIMIT));
-        request.set(new Symbol(symbol));
-        request.set(new OrderQty(newQty));
-        request.set(new Price(newPrice));
+        Message request = SimMessages.create(version, MsgType.ORDER_CANCEL_REPLACE_REQUEST);
+        request.setField(new quickfix.field.OrigClOrdID(origClOrdId));
+        request.setField(new ClOrdID(clOrdId));
+        request.setField(new Side(Side.BUY));
+        request.setField(new TransactTime());
+        request.setField(new OrdType(OrdType.LIMIT));
+        request.setField(new Symbol(symbol));
+        request.setField(new OrderQty(newQty));
+        request.setField(new Price(newPrice));
         request.getHeader().setString(OnBehalfOfCompID.FIELD, "FUNDX");
         dispatch(request, "replace " + origClOrdId
                 + " qty=" + newQty + " px=" + newPrice);
