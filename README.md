@@ -1,7 +1,8 @@
 # QHarness
 
-A FIX 4.4 order routing engine an agent can operate, and a conformance probe
-for testing order routers from both sides of them.
+A FIX order routing engine an agent can operate, and a conformance probe for
+testing order routers from both sides of them. Both speak FIX 4.2, 4.4 and the
+5.0 series over FIXT.1.1, chosen per session.
 
 They are separate on purpose. NEXUM holds FIX sessions and every order's state,
 and answers questions about them — where an order would route, what happened to
@@ -87,6 +88,10 @@ test is involved.
 The CompIDs are crossed and are not names you choose: they are what the
 counterparty's own configuration expects.
 
+Each endpoint speaks FIX 4.4 unless `version=FIX42` or `version=FIX50` says
+otherwise, and each chooses for itself — a 4.2 client beside a 4.4 market is
+how to test what a gateway does between them.
+
 `scripts/harness-scenario.py` exercises every probe tool against a router;
 `scripts/harness-demo.py` walks five orders — partial then full fill, an
 amendment, a cancel that keeps what traded, a refused cancel, and a rejection —
@@ -113,7 +118,7 @@ question alone.
 ## Tests
 
 ```sh
-mvn test          # 467
+mvn test          # 511
 ```
 
 They are written to fail: each mechanism was checked by reintroducing the bug
