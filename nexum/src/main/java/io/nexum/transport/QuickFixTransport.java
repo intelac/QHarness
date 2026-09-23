@@ -4,8 +4,10 @@ import io.nexum.core.Context;
 import io.nexum.core.Scope;
 import io.nexum.message.DialectRegistry;
 import io.nexum.message.FixLayers;
-import io.nexum.message.FixTags;
 import io.nexum.message.FixMessage;
+import io.nexum.message.FixTags;
+import io.nexum.message.FixVersion;
+import io.nexum.message.VersionAdapter;
 
 import java.io.IOException;
 
@@ -275,6 +277,14 @@ public final class QuickFixTransport implements Application, Transport {
         SessionID sessionID = lookup(sessionId);
         if (sessionID == null) {
             return false;
+        }
+
+        // The venue's report goes to a client that may speak another version,
+        // and a field whose meaning moved between them has to be written the
+        // way this session's version writes it.
+        FixVersion version = dialects.versionOf(sessionId);
+        if (version != null) {
+            message = VersionAdapter.adapt(message, version);
         }
 
         try {

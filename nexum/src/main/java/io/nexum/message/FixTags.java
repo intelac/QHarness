@@ -86,6 +86,8 @@ public final class FixTags {
     // --- execution --------------------------------------------------------
 
     public static final int EXEC_TYPE = 150;
+    /** Required on an execution report through 4.2; not defined from 4.3. */
+    public static final int EXEC_TRANS_TYPE = 20;
     public static final int ORD_STATUS = 39;
     public static final int CUM_QTY = 14;
     public static final int LEAVES_QTY = 151;

@@ -101,6 +101,15 @@ public final class DialectRegistry {
                 key("DEST", destinationId), ignored -> new FixCodec(forDestination(destinationId)));
     }
 
+    /**
+     * The FIX version a session declared.
+     *
+     * @return the version, or null for a session nothing declared.
+     */
+    public FixVersion versionOf(String sessionId) {
+        return sessionVersions.get(sessionId);
+    }
+
     /** What is configured where, for a startup dump. */
     public Map<String, String> describe() {
         Map<String, String> lines = new LinkedHashMap<>();

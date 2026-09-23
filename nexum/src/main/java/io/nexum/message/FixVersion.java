@@ -73,6 +73,17 @@ public enum FixVersion {
         return applVerID;
     }
 
+    /**
+     * Whether an execution report in this version carries ExecTransType(20)
+     * and reports a fill as ExecType 1 or 2 rather than F.
+     *
+     * <p>True through 4.2. 4.3 removed ExecTransType from the message and
+     * added F, and 5.0SP1 removed 1 and 2 altogether.
+     */
+    public boolean usesExecTransType() {
+        return this == FIX40 || this == FIX41 || this == FIX42;
+    }
+
     /** Whether this version's session layer is FIXT.1.1 rather than the version itself. */
     public boolean isFixt() {
         return "FIXT.1.1".equals(beginString);
