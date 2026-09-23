@@ -24,6 +24,8 @@ export interface EndpointRow {
   readonly started: boolean
   readonly loggedOn: boolean
   readonly messages: number
+  /** BeginString this endpoint speaks, e.g. FIX.4.2 or FIXT.1.1; absent for a side never started. */
+  readonly version?: string
   /** Absent until there is a session to read it from; zero would name a sequence reset. */
   readonly nextSenderSeqNum?: number
   readonly nextTargetSeqNum?: number

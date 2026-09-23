@@ -84,6 +84,7 @@ function Endpoint({ side, t }: { side: EndpointRow; t: PropsLocale<'fixProbe'>['
     <div className={css.endpoint} data-endpoint={side.endpoint} data-state={state}>
       <span className={css.dot} data-state={state} />
       <span className={css.name}>{side.endpoint}</span>
+      {side.version !== undefined && <span className={css.version}>{side.version}</span>}
       <span className={css.label}>{label}</span>
       {side.started && (
         <span className={css.detail}>{t('endpoint.messages', { count: String(side.messages) })}</span>

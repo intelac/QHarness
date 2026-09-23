@@ -66,6 +66,11 @@
   color: var(--dsw-alias-label-primary);
 }
 
+.version {
+  color: var(--dsw-alias-label-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 .label,
 .detail {
   color: var(--dsw-alias-label-tertiary);
