@@ -84,7 +84,23 @@ counterparty sees it — the sender is the far side, so it is your target.
 it has no host — testing across machines means the system under test dials
 *your* address, which is in its configuration rather than yours.
 
-Every endpoint speaks FIX.4.4. A system on 4.2 or 5.0 cannot be reached.
+Each endpoint speaks FIX 4.4 unless `version` says otherwise: `FIX42`,
+`FIX44` or `FIX50`. Match the system under test, session by session — a
+BeginString the counterparty does not expect is dropped at logon the same way
+wrong CompIDs are. `FIX50` runs over FIXT.1.1 and names the application version
+itself; there is nothing more to set.
+
+```
+harness_connect side=market port=… senderCompId=LSE targetCompId=OMS version=FIX44
+harness_connect side=client port=… senderCompId=FUNDX targetCompId=OMS version=FIX42
+```
+
+Two sides on different versions is how to test a gateway: whether a fill that
+leaves a 4.4 market reaches a 4.2 client spelled the 4.2 way — ExecType `1` or
+`2` rather than `F`, and ExecTransType(20) present. The harness does not
+validate against a dictionary, so a message the client's version would reject
+still arrives; that check is yours to make in `harness_traffic`. `harness_status`
+shows each endpoint's version.
 
 ## More than two endpoints
 

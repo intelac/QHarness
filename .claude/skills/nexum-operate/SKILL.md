@@ -106,7 +106,14 @@ remove_session sessionId=OMS->NEWVENUE
 ```
 
 An acceptor listens for a counterparty; an initiator dials out to `host` and
-`port`. These live until the process ends and are not written to the
+`port`. `version` defaults to `FIX44`; `FIX42` and the 5.0 series (`FIX50`,
+`FIX50SP1`, `FIX50SP2`) are the others in use. A 5.0 session goes out as
+FIXT.1.1 and names its application version at logon, so a counterparty
+expecting `BeginString=FIX.5.0` is misconfigured, not this.
+
+The engine writes each execution report in the version of the session it goes
+out on: a fill from a 4.4 venue reaches a 4.2 client with ExecType `1` or `2`
+and ExecTransType(20), not `F`. Only those two fields are rewritten. These live until the process ends and are not written to the
 configuration file — a session that should survive a restart belongs there,
 added by whoever runs the deployment.
 
