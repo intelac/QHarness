@@ -153,13 +153,26 @@ public final class DictionaryDialect implements Dialect {
         return number == null ? null : Integer.valueOf(number);
     }
 
+    /**
+     * The definitions directly under one section of the dictionary.
+     *
+     * <p>Direct children only. A component definition refers to other
+     * components by an empty element of the same tag and name, so a recursive
+     * search returns the references alongside the definitions — and a
+     * reference read after its definition replaces it with an element that
+     * has no members. FIX44.xml lost NestedParties and SettlParties that way;
+     * FIX50.xml, which wraps nearly every group in a component, lost 32.
+     */
     private static List<Element> children(Element root, String section, String tagName) {
         List<Element> result = new ArrayList<>();
-        NodeList sections = root.getElementsByTagName(section);
-        for (int i = 0; i < sections.getLength(); i++) {
-            NodeList nodes = ((Element) sections.item(i)).getElementsByTagName(tagName);
-            for (int j = 0; j < nodes.getLength(); j++) {
-                result.add((Element) nodes.item(j));
+        for (Element sectionElement : elements(root)) {
+            if (!sectionElement.getTagName().equals(section)) {
+                continue;
+            }
+            for (Element child : elements(sectionElement)) {
+                if (child.getTagName().equals(tagName)) {
+                    result.add(child);
+                }
             }
         }
         return result;

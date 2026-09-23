@@ -109,8 +109,8 @@ public final class DialectRegistry {
             lines.put(
                     "session:" + sessionId,
                     override == null
-                            ? version.beginString() + " (standard)"
-                            : version.beginString() + " + " + override.name());
+                            ? version.label() + " (standard)"
+                            : version.label() + " + " + override.name());
         });
         destinationDialects.forEach(
                 (destinationId, dialect) -> lines.put("dest:" + destinationId, dialect.name()));

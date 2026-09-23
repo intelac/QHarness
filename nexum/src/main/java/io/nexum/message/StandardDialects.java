@@ -32,7 +32,7 @@ public final class StandardDialects {
                 .getClassLoader()
                 .getResourceAsStream(version.dictionaryResource());
         if (xml != null) {
-            return DictionaryDialect.load(version.beginString(), xml);
+            return DictionaryDialect.load(version.label(), xml);
         }
         return new BuiltIn(version);
     }
@@ -76,7 +76,7 @@ public final class StandardDialects {
                 GroupTemplate.of(FixTags.NO_RELATED_SYM, FixTags.SYMBOL, FixTags.SYMBOL, FixTags.SECURITY_ID);
 
         public String name() {
-            return version.beginString() + " (built-in)";
+            return version.label() + " (built-in)";
         }
 
         public Map<Integer, GroupTemplate> groupsFor(String msgType) {
