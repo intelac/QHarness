@@ -1,5 +1,6 @@
 package io.nexum.ai;
 
+import io.nexum.message.FixVersion;
 import io.nexum.transport.SessionManager;
 import io.nexum.transport.Transport;
 
@@ -64,8 +65,13 @@ public final class SessionAdminTools {
                     "The port to listen on, or to connect to"));
             parameters.put("host", Parameter.optional("string",
                     "Where to connect; initiator only, default 127.0.0.1"));
+            // From the enum, so a version added there is offered here rather
+            // than being a value the tool refuses for no stated reason.
             parameters.put("version", Parameter.optionalOneOf(
-                    "Which FIX version the session speaks", "FIX44", "FIX42", "FIX50"));
+                    "Which FIX version the session speaks; default FIX44",
+                    java.util.Arrays.stream(FixVersion.values())
+                            .map(Enum::name)
+                            .toArray(String[]::new)));
             return parameters;
         }
 

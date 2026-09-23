@@ -120,14 +120,15 @@ public final class SessionManager {
 
     // ------------------------------------------------------------------
 
+    /**
+     * The version a caller named.
+     *
+     * <p>By label or enum name, never by BeginString: every 5.0-series version
+     * shares FIXT.1.1 there, so matching on it would answer FIX50 for a caller
+     * that meant SP2.
+     */
     private static FixVersion version(String name) {
-        for (FixVersion candidate : FixVersion.values()) {
-            if (candidate.name().equalsIgnoreCase(name)
-                    || candidate.beginString().equalsIgnoreCase(name)) {
-                return candidate;
-            }
-        }
-        throw new IllegalArgumentException("unknown FIX version \"" + name + "\"");
+        return FixVersion.of(name);
     }
 
     /**
@@ -161,8 +162,14 @@ public final class SessionManager {
         }
 
         text.append("\n[session]\n")
-                .append("BeginString=").append(version.beginString()).append('\n')
-                .append("SenderCompID=").append(sessionId, 0, arrow).append('\n')
+                .append("BeginString=").append(version.beginString()).append('\n');
+        if (version.applVerID() != null) {
+            // FIXT.1.1 carries any application version, and QuickFIX refuses to
+            // start a session that does not say which: without this line a 5.0
+            // declaration fails at startup rather than on the first message.
+            text.append("DefaultApplVerID=").append(version.applVerID()).append('\n');
+        }
+        text.append("SenderCompID=").append(sessionId, 0, arrow).append('\n')
                 .append("TargetCompID=").append(sessionId.substring(arrow + 2)).append('\n');
 
         ByteArrayInputStream config =

@@ -253,9 +253,16 @@ public final class Bootstrap {
                     .append("SocketConnectPort=").append(session.integer("port", 0)).append('\n');
         }
 
+        // Through the version rather than straight from the file: what a
+        // configuration declares is the version's name, and for the 5.0 series
+        // that is not what goes on the wire.
+        FixVersion version = FixVersion.ofBeginString(session.require("version"));
         text.append("\n[session]\n")
-                .append("BeginString=").append(session.require("version")).append('\n')
-                .append("SenderCompID=").append(id, 0, arrow).append('\n')
+                .append("BeginString=").append(version.beginString()).append('\n');
+        if (version.applVerID() != null) {
+            text.append("DefaultApplVerID=").append(version.applVerID()).append('\n');
+        }
+        text.append("SenderCompID=").append(id, 0, arrow).append('\n')
                 .append("TargetCompID=").append(id.substring(arrow + 2)).append('\n');
         return text.toString();
     }
